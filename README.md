@@ -15,8 +15,8 @@ Für eine einwandfreie Funktion muss ein aktueller Treiber und python3 installie
 ✅ Abbruch möglich\
 ***
 ### Funktionsübersicht
-Die Software bietet umfangreiche Funktionen zur Video- und Audiokonvertierung\ unter Nutzung moderner Hard- und Software-Encoder.\
-Encoder-Unterstützung\
+Die Software bietet umfangreiche Funktionen zur Video- und Audiokonvertierung\ unter Nutzung moderner Hard- und Software-Enkoder.\
+Enkoder-Unterstützung\
 
 Für die Videokodierung stehen folgende Encoder zur Verfügung:\
     • NVIDIA: Hardwarebeschleunigung über NVENC\
