@@ -1,0 +1,14 @@
+Source: linux-video-enkoder
+Section: video
+Priority: optional
+Maintainer: Nightworker <nightworker@guideos.de>
+Build-Depends: debhelper-compat (= 10)
+Standards-Version: 4.5.0
+Homepage: https://github.com/Nightworker-DE/Linux-Video-Enkoder
+
+Package: linux-video-enkoder
+Architecture: all
+Depends: python3, ${misc:Depends}
+Description: Konvertierung mit ffmpeg und Hardwareunterstützung
+ Ein grafisches Tool zur Videokonvertierung, das ffmpeg nutzt,
+ um Hardwarebeschleunigung für Grafikkarten (GPU) zu verwenden.
