@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 # =======================================================================
-# Titel: linux-video-enkoder (GTK3 Port)
-# Version: 1.0.3 (GTK3, GPU, Drag & Drop)
-# Autor: Nightworker / Umstellung: Gemini
+# Titel: Linux-Video-Enkoder (GTK3 Port)
+# Version: 1.0.4 (Dynamische Labels & Preset-Fix)
+# Autor: Nightworker / Adaptive UI: Gemini
 # =======================================================================
 
 import os
@@ -17,7 +17,7 @@ import gi
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk, Gdk, GLib, Pango
 
-# -------------------- Hilfsfunktionen (ERHALTEN) --------------------
+# -------------------- Hilfsfunktionen --------------------
 def which_bin(name):
     return shutil.which(name) is not None
 
@@ -73,7 +73,6 @@ class VideoConverterWindow(Gtk.Window):
         self.current_proc = None
         self.stop_event = threading.Event()
 
-        # Layout-Container
         main_hbox = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=12)
         main_hbox.set_margin_start(12)
         main_hbox.set_margin_end(12)
@@ -81,16 +80,14 @@ class VideoConverterWindow(Gtk.Window):
         main_hbox.set_margin_bottom(12)
         self.add(main_hbox)
 
-        # --- Linke Seite: Einstellungen ---
+        # --- Linke Seite ---
         left_vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
         main_hbox.pack_start(left_vbox, False, False, 0)
 
-        # GPU Info
         left_vbox.pack_start(Gtk.Label(label="Erkannte Grafikkarte:", xalign=0), False, False, 0)
         self.gpu_entry = Gtk.Entry(editable=False, text=detect_gpu_short())
         left_vbox.pack_start(self.gpu_entry, False, False, 0)
 
-        # GPU Auswahl
         left_vbox.pack_start(Gtk.Label(label="GPU / CPU Auswahl:", xalign=0), False, False, 0)
         self.gpu_combo = Gtk.ComboBoxText()
         for opt in ["Automatisch (empfohlen)", "NVIDIA", "AMD", "Intel", "CPU"]:
@@ -98,7 +95,6 @@ class VideoConverterWindow(Gtk.Window):
         self.gpu_combo.set_active(0)
         left_vbox.pack_start(self.gpu_combo, False, False, 0)
 
-        # Buttons
         self.btn_files = Gtk.Button(label="Dateien auswählen")
         self.btn_files.connect("clicked", self.on_select_files)
         left_vbox.pack_start(self.btn_files, False, False, 0)
@@ -113,11 +109,9 @@ class VideoConverterWindow(Gtk.Window):
 
         left_vbox.pack_start(Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL), False, False, 5)
 
-        # Options Grid
         grid = Gtk.Grid(column_spacing=10, row_spacing=10)
         left_vbox.pack_start(grid, False, False, 0)
 
-        # Upscaling
         grid.attach(Gtk.Label(label="Upscaling:", xalign=0), 0, 0, 1, 1)
         self.upscale_combo = Gtk.ComboBoxText()
         for s in ["Original","720p (1280x720)","1080p (1920x1080)","1440p (2560x1440)","2160p (3840x2160)"]:
@@ -125,7 +119,6 @@ class VideoConverterWindow(Gtk.Window):
         self.upscale_combo.set_active(0)
         grid.attach(self.upscale_combo, 1, 0, 1, 1)
 
-        # Audio / Video Formate
         grid.attach(Gtk.Label(label="Audioformat:", xalign=0), 0, 1, 1, 1)
         self.audio_combo = Gtk.ComboBoxText()
         for s in ["AAC","PCM","FLAC (mkv)"]: self.audio_combo.append_text(s)
@@ -138,19 +131,28 @@ class VideoConverterWindow(Gtk.Window):
         self.video_combo.set_active(0)
         grid.attach(self.video_combo, 1, 2, 1, 1)
 
-        # Qualität
-        grid.attach(Gtk.Label(label="Qualität:", xalign=0), 0, 3, 1, 1)
+        grid.attach(Gtk.Label(label="Qualität Modus:", xalign=0), 0, 3, 1, 1)
         self.quality_combo = Gtk.ComboBoxText()
-        for s in ["CQ (Qualitätsbasiert)","Bitrate (kbit/s)","Zieldateigröße (MB)"]: self.quality_combo.append_text(s)
+        for s in ["CQ (Qualitätsbasiert)","Bitrate (kbit/s)","Zieldateigröße (MB)"]:
+            self.quality_combo.append_text(s)
         self.quality_combo.set_active(0)
         self.quality_combo.connect("changed", self.on_quality_mode_changed)
         grid.attach(self.quality_combo, 1, 3, 1, 1)
 
-        grid.attach(Gtk.Label(label="Wert:", xalign=0), 0, 4, 1, 1)
+        # Das Label, das sich nun dynamisch anpasst
+        self.quality_label = Gtk.Label(label="CRF Wert (0-51):", xalign=0)
+        grid.attach(self.quality_label, 0, 4, 1, 1)
         self.quality_entry = Gtk.Entry(text="23")
         grid.attach(self.quality_entry, 1, 4, 1, 1)
 
-        # Zielordner
+        grid.attach(Gtk.Label(label="Analyse-Stufe (Preset):", xalign=0), 0, 5, 1, 1)
+        self.preset_combo = Gtk.ComboBoxText()
+        presets = ["ultrafast", "superfast", "veryfast", "faster", "fast", "medium", "slow", "slower", "veryslow"]
+        for p in presets:
+            self.preset_combo.append_text(p)
+        self.preset_combo.set_active(5)
+        grid.attach(self.preset_combo, 1, 5, 1, 1)
+
         left_vbox.pack_start(Gtk.Label(label="Zielordner (leer -> auto):", xalign=0), False, False, 0)
         self.target_entry = Gtk.Entry()
         left_vbox.pack_start(self.target_entry, False, False, 0)
@@ -158,7 +160,6 @@ class VideoConverterWindow(Gtk.Window):
         self.save_in_source_chk = Gtk.CheckButton(label="Im Quellverzeichnis speichern")
         left_vbox.pack_start(self.save_in_source_chk, False, False, 0)
 
-        # Start/Stop Buttons unten links
         btn_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
         left_vbox.pack_end(btn_box, False, False, 0)
         self.start_btn = Gtk.Button(label="Konvertierung starten")
@@ -172,15 +173,14 @@ class VideoConverterWindow(Gtk.Window):
         btn_box.pack_start(self.cancel_btn, True, True, 0)
         btn_box.pack_start(self.start_btn, True, True, 0)
 
-        # --- Rechte Seite: Liste, Progress, Log ---
+        # --- Rechte Seite ---
         right_vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
         main_hbox.pack_start(right_vbox, True, True, 0)
 
-        # Listbox (TreeView)
         self.liststore = Gtk.ListStore(str)
         self.treeview = Gtk.TreeView(model=self.liststore)
         renderer = Gtk.CellRendererText()
-        column = Gtk.TreeViewColumn("Ausgewählte Dateien (Drag & Drop möglich)", renderer, text=0)
+        column = Gtk.TreeViewColumn("Ausgewählte Dateien", renderer, text=0)
         self.treeview.append_column(column)
         self.treeview.get_selection().set_mode(Gtk.SelectionMode.MULTIPLE)
 
@@ -189,12 +189,10 @@ class VideoConverterWindow(Gtk.Window):
         scroll_tree.add(self.treeview)
         right_vbox.pack_start(scroll_tree, True, True, 0)
 
-        # Drag and Drop Setup
         self.treeview.drag_dest_set(Gtk.DestDefaults.ALL, [], Gdk.DragAction.COPY)
         self.treeview.drag_dest_add_uri_targets()
         self.treeview.connect("drag-data-received", self.on_drag_data_received)
 
-        # Progress
         self.file_label = Gtk.Label(label="Aktueller Dateifortschritt:", xalign=0)
         right_vbox.pack_start(self.file_label, False, False, 0)
         self.file_progress = Gtk.ProgressBar()
@@ -205,8 +203,6 @@ class VideoConverterWindow(Gtk.Window):
         self.total_progress = Gtk.ProgressBar()
         right_vbox.pack_start(self.total_progress, False, False, 0)
 
-        # Log
-        right_vbox.pack_start(Gtk.Label(label="ffmpeg-Ausgabe (live):", xalign=0), False, False, 0)
         self.log_view = Gtk.TextView(editable=False, cursor_visible=False)
         self.log_view.set_wrap_mode(Gtk.WrapMode.WORD)
         scroll_log = Gtk.ScrolledWindow()
@@ -215,7 +211,6 @@ class VideoConverterWindow(Gtk.Window):
         right_vbox.pack_start(scroll_log, True, True, 0)
 
         self.show_all()
-        self.append_log("linux-video-enkoder bereit.\n")
 
     # -------------------- UI Handlers --------------------
     def append_log(self, text):
@@ -229,22 +224,20 @@ class VideoConverterWindow(Gtk.Window):
 
     def on_quality_mode_changed(self, combo):
         mode = combo.get_active_text()
-        if "CQ" in mode: self.quality_entry.set_text("23")
-        elif "Bitrate" in mode: self.quality_entry.set_text("5000")
-        else: self.quality_entry.set_text("700")
+        if "CQ" in mode:
+            self.quality_label.set_text("CRF Wert (0-51):")
+            self.quality_entry.set_text("23")
+        elif "Bitrate" in mode:
+            self.quality_label.set_text("Bitrate (kbit/s):")
+            self.quality_entry.set_text("5000")
+        elif "Zieldateigröße" in mode:
+            self.quality_label.set_text("Zieldateigröße (MB):")
+            self.quality_entry.set_text("700")
 
     def on_select_files(self, btn):
-        dialog = Gtk.FileChooserDialog(
-            title="Wähle Videodateien", parent=self,
-            action=Gtk.FileChooserAction.OPEN,
-            buttons=(Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL, Gtk.STOCK_OPEN, Gtk.ResponseType.OK)
-        )
+        dialog = Gtk.FileChooserDialog(title="Wähle Videodateien", parent=self, action=Gtk.FileChooserAction.OPEN,
+                                     buttons=(Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL, Gtk.STOCK_OPEN, Gtk.ResponseType.OK))
         dialog.set_select_multiple(True)
-        filter_vid = Gtk.FileFilter()
-        filter_vid.set_name("Videodateien")
-        for ext in ["*.mp4","*.mkv","*.mov","*.avi","*.webm"]: filter_vid.add_pattern(ext)
-        dialog.add_filter(filter_vid)
-
         if dialog.run() == Gtk.ResponseType.OK:
             for f in dialog.get_filenames():
                 if f not in self.selected_files:
@@ -261,11 +254,8 @@ class VideoConverterWindow(Gtk.Window):
             self.liststore.remove(model.get_iter(path))
 
     def on_browse_target(self, btn):
-        dialog = Gtk.FileChooserDialog(
-            title="Zielverzeichnis", parent=self,
-            action=Gtk.FileChooserAction.SELECT_FOLDER,
-            buttons=(Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL, Gtk.STOCK_OPEN, Gtk.ResponseType.OK)
-        )
+        dialog = Gtk.FileChooserDialog(title="Zielverzeichnis", parent=self, action=Gtk.FileChooserAction.SELECT_FOLDER,
+                                     buttons=(Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL, Gtk.STOCK_OPEN, Gtk.ResponseType.OK))
         if dialog.run() == Gtk.ResponseType.OK:
             self.target_entry.set_text(dialog.get_filename())
         dialog.destroy()
@@ -274,11 +264,10 @@ class VideoConverterWindow(Gtk.Window):
         uris = selection.get_uris()
         for uri in uris:
             path = GLib.filename_from_uri(uri)[0]
-            p = Path(path)
-            if p.exists() and p.suffix.lower() in [".mp4",".mkv",".mov",".avi",".webm"]:
+            if Path(path).exists():
                 if path not in self.selected_files:
                     self.selected_files.append(path)
-                    self.liststore.append([p.name])
+                    self.liststore.append([Path(path).name])
         context.finish(True, False, time)
 
     # -------------------- Logik (BUILD ARGS) --------------------
@@ -291,6 +280,7 @@ class VideoConverterWindow(Gtk.Window):
         qmode = self.quality_combo.get_active_text()
         qval = self.quality_entry.get_text().strip()
         upscale = self.upscale_combo.get_active_text()
+        selected_preset = self.preset_combo.get_active_text()
 
         # Encoder Mapping
         if gpu == "NVIDIA": h264, h265, av1, hw = "h264_nvenc", "hevc_nvenc", "av1_nvenc", []
@@ -304,19 +294,30 @@ class VideoConverterWindow(Gtk.Window):
             args += ["-c:v", "copy"]
         else:
             codec = h264 if "H.264" in vchoice else (h265 if "H.265" in vchoice else av1)
+            is_hw = any(x in codec for x in ["nvenc", "amf", "vaapi"])
+
+            # Preset-Logik: HW-Encoder nutzen oft andere Namen (p1-p7), CPU nutzt Namen.
+            # Wir versuchen das gewählte Preset zu nutzen, außer bei NVENC (dort p1-p7)
+            current_preset = selected_preset
+            if "nvenc" in codec:
+                # Einfaches Mapping für NVENC (p1=fastest, p7=slowest)
+                mapping = {"ultrafast":"p1", "superfast":"p2", "veryfast":"p3", "faster":"p4",
+                           "fast":"p5", "medium":"p6", "slow":"p7", "slower":"p7", "veryslow":"p7"}
+                current_preset = mapping.get(selected_preset, "p4")
+
             if "CQ" in qmode:
                 qn = int(qval) if qval.isdigit() else 23
-                if any(x in codec for x in ["nvenc", "amf", "vaapi"]):
-                    args += ["-c:v", codec, "-rc", "vbr", "-cq", str(qn), "-preset", "p5"]
+                if is_hw:
+                    args += ["-c:v", codec, "-rc", "vbr", "-cq", str(qn), "-preset", current_preset]
                 else:
-                    args += ["-c:v", codec, "-crf", str(qn), "-preset", "medium"]
+                    args += ["-c:v", codec, "-crf", str(qn), "-preset", current_preset]
             elif "Bitrate" in qmode:
                 kb = qval if qval.isdigit() else "5000"
-                args += ["-c:v", codec, "-b:v", f"{kb}k", "-preset", "p4"]
+                args += ["-c:v", codec, "-b:v", f"{kb}k", "-preset", current_preset]
             else:
                 mb = float(qval) if qval.replace('.','').isdigit() else 700.0
                 vkbps = calculate_bitrate_for_target_size(infile, mb) or 5000
-                args += ["-c:v", codec, "-b:v", f"{vkbps}k", "-preset", "p4"]
+                args += ["-c:v", codec, "-b:v", f"{vkbps}k", "-preset", current_preset]
 
         # Audio
         if achoice == "AAC": args += ["-c:a", "aac", "-b:a", "192k"]
@@ -351,11 +352,9 @@ class VideoConverterWindow(Gtk.Window):
 
         for idx, infile in enumerate(list(self.selected_files), 1):
             if self.stop_event.is_set(): break
-
             in_p = Path(infile)
             ext = ".mkv" if self.audio_combo.get_active_text() == "FLAC (mkv)" else ".mp4"
 
-            # Zielpfad-Logik
             if self.save_in_source_chk.get_active():
                 out_dir = in_p.parent
             elif target_dir_str:
@@ -367,16 +366,17 @@ class VideoConverterWindow(Gtk.Window):
 
             out_p = make_unique_path(out_dir / (in_p.stem + ext))
             duration = probe_duration_seconds(in_p) or 1.0
-
             args = self.build_ffmpeg_args(str(in_p), str(out_p)) + ["-y", str(out_p)]
-            self.append_log(f"Datei {idx}/{total}: {in_p.name}\n")
+
+            self.append_log(f"\n--- Starte Datei {idx}/{total}: {in_p.name} ---\n")
+            # Debug-Info im Log, damit man sieht, welches Preset genutzt wird
+            self.append_log(f"Kommando: ffmpeg {' '.join(args[:15])}...\n")
 
             try:
                 self.current_proc = subprocess.Popen(
                     ["ffmpeg"] + args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                     universal_newlines=True, bufsize=1
                 )
-
                 for line in self.current_proc.stdout:
                     self.append_log(line)
                     m = time_re.search(line)
@@ -386,12 +386,11 @@ class VideoConverterWindow(Gtk.Window):
                         pct = min(1.0, secs / duration)
                         GLib.idle_add(self.file_progress.set_fraction, pct)
                         GLib.idle_add(self.total_progress.set_fraction, ((idx-1) + pct) / total)
-
                 self.current_proc.wait()
             except Exception as e:
                 self.append_log(f"Fehler: {e}\n")
 
-        self.append_log("Fertig.\n")
+        self.append_log("\n--- Alle Aufgaben abgeschlossen. ---\n")
         GLib.idle_add(self.start_btn.set_sensitive, True)
         GLib.idle_add(self.cancel_btn.set_sensitive, False)
 
