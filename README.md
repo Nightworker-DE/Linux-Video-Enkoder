@@ -1,4 +1,5 @@
 ## Linux-Video-Enkoder
+<img width="1052" height="781" alt="screenshot1" src="https://github.com/user-attachments/assets/263ceee4-bbca-42b0-a2a4-1374215ae567" />
 Der Linux-Video-Enkoder hat folgende Funktionen:
 
 Die Konvertierung mit ffmpeg und der Hardwareunterstützung für Grafikkarten.
