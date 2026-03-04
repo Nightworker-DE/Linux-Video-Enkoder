@@ -84,7 +84,7 @@ Ressourceneffizienz: Das Modul nutzt Multithreading für die Bildextraktion, um 
 
 ```bash
 # Clone repository
-git clone [https://github.com/Nightworker-DE/Linux-Video-Enkoder.git)
+git clone https://github.com/Nightworker-DE/Linux-Video-Enkoder.git
 cd Linux-Video-Enkoder
 
 # Create DEB package
