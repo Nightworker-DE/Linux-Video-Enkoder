@@ -63,6 +63,18 @@ Während der Konvertierung wird der aktuelle Fortschritt in einem separaten\
 Fortschrittsfenster angezeigt, der Konvertierungsvorgang kann jederzeit durch\
 den Benutzer abgebrochen werden.
 
+### 🔍 Modul: Video-Vorschau & Frame-Extraktion (video_preview.py)
+Die Datei video_preview.py dient als interaktive grafische Schnittstelle zur exakten Bestimmung von Schnittmarken. Anstatt Zeitstempel manuell schätzen zu müssen, ermöglicht dieses Modul eine visuelle Kontrolle in Echtzeit.
+
+Kernfunktionen:
+Frame-genaues Scrubbing: Über einen GTK-Schieberegler kann jede Position des Videos angesteuert werden.
+
+Dynamic MJPEG Stream: Zur Ressourcenschonung und Vermeidung von Schreibzugriffen in geschützten Verzeichnissen (wie /usr/lib) nutzt das Modul eine FFmpeg-Pipe. Bilder werden direkt im Arbeitsspeicher als JPEG-Stream dekodiert und via GdkPixbufLoader angezeigt.
+
+In/Out-Point Definition: Benutzer können Start- und Endpunkte visuell festlegen. Diese Werte werden beim Schließen des Dialogs automatisch an das Hauptprogramm übergeben.
+
+Ressourceneffizienz: Das Modul nutzt Multithreading für die Bildextraktion, um ein Einfrieren der Benutzeroberfläche (GUI-Lag) während des schnellen Spulens zu verhindern.
+
 ## 🔧 Installation
 
 ### Build from DEB Package:
@@ -76,6 +88,6 @@ cd Linux-Video-Enkoder
 dpkg-buildpackage -us -uc
 
 # Install (as root)
-sudo dpkg -i ../linux-video-enkoder_1.0.4_all.deb
+sudo dpkg -i ../linux-video-enkoder_1.0.5_all.deb
 sudo apt-get install -f  # Resolve dependencies if needed
 ```
