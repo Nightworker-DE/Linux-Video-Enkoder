@@ -15,32 +15,32 @@ Für eine einwandfreie Funktion muss ein aktueller Treiber und python3 installie
 ✅ Abbruch möglich\
 ***
 ### Funktionsübersicht
-Die Software bietet umfangreiche Funktionen zur Video- und Audiokonvertierung\ unter Nutzung moderner Hard- und Software-Enkoder.\
-Enkoder-Unterstützung\
+Die Software bietet umfangreiche Funktionen zur Video- und Audiokonvertierung unter Nutzung moderner Hard- und Software-Enkoder.
 
+### Enkoder-Unterstützung
 Für die Videokodierung stehen folgende Encoder zur Verfügung:\
     • NVIDIA: Hardwarebeschleunigung über NVENC\
     • AMD: Hardwarebeschleunigung über AMF bzw. VAAPI\
     • Intel: Hardwarebeschleunigung über VAAPI\
     • CPU: Softwarebasierte Kodierung ohne Hardwarebeschleunigung\
 
-Die Auswahl des Encoders erfolgt abhängig von der verfügbaren Hardware des\ Systems.\
+Die Auswahl des Encoders erfolgt abhängig von der verfügbaren Hardware des Systems.
 
 ### Videoformate
 Das Quellvideo kann in eines der folgenden Zielformate konvertiert werden:\
     • H.264 (AVC)\
     • H.265 (HEVC)\
-    • AV1\
+    • AV1  
 
 ### Audioeinstellungen
-Der im Videofile enthaltene Audio-Codec kann unabhängig vom Videoformat\
-geändert werden. Zusätzlich lässt sich auch nur der Audio-Codec ändern, wobei\
+Der im Videofile enthaltene Audio-Codec kann unabhängig vom Videoformat  
+geändert werden. Zusätzlich lässt sich auch nur der Audio-Codec ändern, wobei  
 das Videoformat  nicht verändert wird.
 
 Unterstützt werden:\
     • PCM (16 Bit)\
     • AAC\
-    • FLAC (16 Bit)\
+    • FLAC (16 Bit)  
 
 ### Qualität und Bitrate
 Die Software ermöglicht:\
