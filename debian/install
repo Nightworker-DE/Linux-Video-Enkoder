@@ -1,0 +1,5 @@
+linux-video-enkoder         usr/bin/
+linux-video-enkoder.desktop usr/share/applications/
+linux-video-enkoder.png     usr/share/pixmaps/
+linux-video-enkoder.py      usr/lib/linux-video-enkoder/
+video_preview.py            usr/lib/linux-video-enkoder/
