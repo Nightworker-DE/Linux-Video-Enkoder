@@ -67,6 +67,8 @@ den Benutzer abgebrochen werden.
 ### 🔍 Modul: Video-Vorschau & Frame-Extraktion (video_preview.py)
 Die Datei video_preview.py dient als interaktive grafische Schnittstelle zur exakten Bestimmung von Schnittmarken. Anstatt Zeitstempel manuell schätzen zu müssen, ermöglicht dieses Modul eine visuelle Kontrolle in Echtzeit.
 
+<img width="1051" height="779" alt="screenshot2" src="https://github.com/user-attachments/assets/d2d3051e-181d-44e9-8e8d-d8437e1714d8" />
+
 Kernfunktionen:
 Frame-genaues Scrubbing: Über einen GTK-Schieberegler kann jede Position des Videos angesteuert werden.
 
