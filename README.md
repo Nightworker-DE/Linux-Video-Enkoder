@@ -46,7 +46,7 @@ Unterstützt werden:\
 Die Software ermöglicht:\
     • die Auswahl einer vordefinierten Qualitätsstufe\
     • die manuelle Einstellung der Zielbitrate\
-    • die gewünschte Ausgabegröße\
+    • die gewünschte Ausgabegröße  
 
 Diese Parameter beeinflussen die resultierende Dateigröße und Bildqualität.
 ### Auflösung und Skalierung
@@ -56,7 +56,7 @@ Es stehen folgende vordefinierte Zielauflösungen zur Verfügung:
     • 2560 × 1440 (1440p)\
     • 3840 × 2160 (2160p)
 
-Die Skalierung erfolgt mittels FFmpeg unter Verwendung des Lanczos-Filters,\
+Die Skalierung erfolgt mittels FFmpeg unter Verwendung des Lanczos-Filters,  
 um eine hochwertige Bildskalierung zu gewährleisten.
 ### Prozesssteuerung
 Während der Konvertierung wird der aktuelle Fortschritt in einem separaten\
