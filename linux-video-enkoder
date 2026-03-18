@@ -1,0 +1,3 @@
+#!/bin/bash
+cd /usr/lib/linux-video-enkoder
+python3 linux-video-enkoder.py
