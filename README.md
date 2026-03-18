@@ -70,7 +70,7 @@ Die Datei video_preview.py dient als interaktive grafische Schnittstelle zur exa
 <img width="1051" height="779" alt="screenshot2" src="https://github.com/user-attachments/assets/d2d3051e-181d-44e9-8e8d-d8437e1714d8" />
 
 Kernfunktionen:
-Frame-genaues Scrubbing: Über einen GTK-Schieberegler kann jede Position des Videos angesteuert werden.
+Frame-genaues Scrubbing: Über einen GTK-Schieberegler kann jede Position des Videos angesteuert werden. Für diese Funktion sollte sich nur ein Clip im Auswahlfenster befinden. 
 
 Dynamic MJPEG Stream: Zur Ressourcenschonung und Vermeidung von Schreibzugriffen in geschützten Verzeichnissen (wie /usr/lib) nutzt das Modul eine FFmpeg-Pipe. Bilder werden direkt im Arbeitsspeicher als JPEG-Stream dekodiert und via GdkPixbufLoader angezeigt.
 
