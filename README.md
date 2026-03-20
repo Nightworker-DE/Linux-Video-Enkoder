@@ -91,6 +91,6 @@ cd Linux-Video-Enkoder
 dpkg-buildpackage -us -uc
 
 # Install (as root)
-sudo dpkg -i ../linux-video-enkoder_1.0.6_all.deb
+sudo dpkg -i ../linux-video-enkoder_1.0.7_all.deb
 sudo apt-get install -f  # Resolve dependencies if needed
 ```
