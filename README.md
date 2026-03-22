@@ -7,13 +7,13 @@ Für eine einwandfreie Funktion muss ein aktueller Treiber und python3 installie
 
 ✅ Unterstützung: NVIDIA (NVENC); AMD (AMF/VAAPI); Intel (VAAPI); CPU (Software)\
 ✅ Der Audio-Codec im Videofile kann geändert werden: PCM 16bit, AAC, Flac\
+✅ Der Audio-Codec im Videofile kann kopiert werden, praktisch z.B. 5.1 Audio
 ✅ Konvertierung des Video-Files in h.264, h.265 oder AV1\
-✅ Auswahl der Qualitätsstufe\
-✅ Auswahl der Bitrate\
-✅ Vorgabe der Ausgabegröße\
-✅ Skalierung auf 720p, 1080p, 1440p und 2160p durch ffmpeg mit Lanczos\
-✅ Fortschrittsfenster\
-✅ Abbruch möglich\
+✅ Qualitätssteuerung: Auswahl nach CRF (Qualitätsstufe), fester Bitrate oder Ziel-Dateigröße (MB)\
+✅ Skalierung: Hochwertiges Upscaling (720p bis 4K) via FFmpeg (Lanczos-Filter)\
+✅ Batch-Verarbeitung: Unterstützung für Drag & Drop und gleichzeitige Auswahl mehrerer Dateien\
+✅ Schnittfunktion: Visuelle Festlegung von Startzeit und Dauer über ein Vorschau-Modul\
+✅ Prozesskontrolle: Echtzeit-Log-Fenster, Fortschrittsbalken und Abbruchfunktion\
 ***
 ### Funktionsübersicht
 Die Software bietet umfangreiche Funktionen zur Video- und Audiokonvertierung unter Nutzung moderner Hard- und Software-Enkoder.
@@ -37,6 +37,9 @@ Das Quellvideo kann in eines der folgenden Zielformate konvertiert werden:\
 Der im Videofile enthaltene Audio-Codec kann unabhängig vom Videoformat  
 geändert werden. Zusätzlich lässt sich auch nur der Audio-Codec ändern, wobei  
 das Videoformat  nicht verändert wird.
+Audio-Copy (Stream Copy) 🆕: Die Audiospur kann ohne Neukodierung 1:1 in die 
+Zieldatei kopiert werden. Dies spart Zeit und erhält die originale Qualität 
+(z.B. bei 5.1 Surround-Sound)
 
 Unterstützt werden:\
     • PCM (16 Bit)\
@@ -49,7 +52,6 @@ Die Software ermöglicht:\
     • die manuelle Einstellung der Zielbitrate\
     • die gewünschte Ausgabegröße  
 
-Diese Parameter beeinflussen die resultierende Dateigröße und Bildqualität.
 ### Auflösung und Skalierung
 Es stehen folgende vordefinierte Zielauflösungen zur Verfügung:
     • 1280 × 720   (720p)\
