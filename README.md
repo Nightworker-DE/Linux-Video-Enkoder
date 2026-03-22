@@ -33,7 +33,7 @@ Das Quellvideo kann in eines der folgenden Zielformate konvertiert werden:\
 
 ### Audioeinstellungen
 Der im Videofile enthaltene Audio-Codec kann unabhängig vom Videoformat  
-geändert werden. Zusätzlich lässt sich auch nur der Audio-Codec ändern, wobei  
+geändert werden.   Zusätzlich lässt sich auch nur der Audio-Codec ändern, wobei  
 das Videoformat  nicht verändert wird.\
 Audio-Copy (Stream Copy) 🆕: Die Audiospur kann ohne Neukodierung 1:1 in die 
 Zieldatei kopiert werden. Dies spart Zeit und erhält die originale Qualität 
