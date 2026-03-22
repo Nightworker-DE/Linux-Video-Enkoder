@@ -21,7 +21,7 @@ Für die Videokodierung stehen folgende Encoder zur Verfügung:\
     • NVIDIA: Hardwarebeschleunigung über NVENC\
     • AMD: Hardwarebeschleunigung über AMF bzw. VAAPI\
     • Intel: Hardwarebeschleunigung über VAAPI\
-    • CPU: Softwarebasierte Kodierung ohne Hardwarebeschleunigung\
+    • CPU: Softwarebasierte Kodierung ohne Hardwarebeschleunigung
 
 Die Auswahl des Encoders erfolgt abhängig von der verfügbaren Hardware des Systems.
 
