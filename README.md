@@ -1,8 +1,6 @@
 ## Linux-Video-Enkoder
 <img width="1052" height="824" alt="Bildschirmfoto vom 2026-03-20 14-46-59" src="https://github.com/user-attachments/assets/9ce86e32-942f-4bfb-8f6a-6ae600aff780" />
-Der Linux-Video-Enkoder hat folgende Funktionen:
 
-Die Konvertierung mit ffmpeg und der Hardwareunterstützung für Grafikkarten.
 Für eine einwandfreie Funktion muss ein aktueller Treiber und python3 installiert sein.
 
 ✅ Unterstützung: NVIDIA (NVENC); AMD (AMF/VAAPI); Intel (VAAPI); CPU (Software)\
