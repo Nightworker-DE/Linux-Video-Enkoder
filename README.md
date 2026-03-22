@@ -7,7 +7,7 @@ Für eine einwandfreie Funktion muss ein aktueller Treiber und python3 installie
 
 ✅ Unterstützung: NVIDIA (NVENC); AMD (AMF/VAAPI); Intel (VAAPI); CPU (Software)\
 ✅ Der Audio-Codec im Videofile kann geändert werden: PCM 16bit, AAC, Flac\
-✅ Der Audio-Codec im Videofile kann kopiert werden, praktisch z.B. 5.1 Audio
+✅ Der Audio-Codec im Videofile kann kopiert werden, praktisch z.B. 5.1 Audio\
 ✅ Konvertierung des Video-Files in h.264, h.265 oder AV1\
 ✅ Qualitätssteuerung: Auswahl nach CRF (Qualitätsstufe), fester Bitrate oder Ziel-Dateigröße (MB)\
 ✅ Skalierung: Hochwertiges Upscaling (720p bis 4K) via FFmpeg (Lanczos-Filter)\
