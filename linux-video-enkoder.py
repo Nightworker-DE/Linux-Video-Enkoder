@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # =======================================================================
 # Titel:    Linux-Video-Enkoder (GTK3 Port)
-# Version:  1.1.2 (Audio Copy Feature)
+# Version:  1.0.8 (Audio Copy Feature)
 # Autor:    Nightworker / Adaptive UI: Gemini
 # =======================================================================
 import sys
