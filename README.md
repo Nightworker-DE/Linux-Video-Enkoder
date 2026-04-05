@@ -88,16 +88,19 @@ Ressourceneffizienz: Das Modul nutzt Multithreading für die Bildextraktion, um 
 ## 🔧 Installation
 
 ### Build from DEB Package:
-
+Erstelle ein beliebiges Verzeichnis, öffne darin das Terminal und führe folgende Schritte aus: 
 ```bash
 # Clone repository
 git clone https://github.com/Nightworker-DE/Linux-Video-Enkoder.git
-cd Linux-Video-Enkoder
-
+cd linux-video-enkoder
+```
+```bash
 # Create DEB package
 dpkg-buildpackage -us -uc
-
+```
+```bash
 # Install (as root)
-sudo dpkg -i ../linux-video-enkoder_1.0.8_all.deb
+sudo dpkg -i ../linux-video-enkoder_1.0.9_all.deb
 sudo apt-get install -f  # Resolve dependencies if needed
 ```
+Die erstellte .deb Datei kann aber auch durch ein Doppelklick installiert werden
