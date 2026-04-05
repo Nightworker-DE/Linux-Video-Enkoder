@@ -44,12 +44,12 @@ Unterstützt werden:\
     • FLAC (16 Bit) 
 
 Die Lautstärke der Ausgabedatei kann nun angepasst werden.   
-Es wird eine Normalisierung nach dem EBU R128 Standard (loudnorm) vorgenommen, 
+Es wird eine Normalisierung nach dem EBU R128 Standard (loudnorm) vorgenommen,\
 das SpinButton-Feld fungiert dabei als Ziel-Lautstärke (LUFS). 
 
-Standardwert: -24 (Der Rundfunkstandard, eher leise). 
-Empfehlung für YouTube/Web: -14 bis -16 (schön laut, aber klar). 
-Bereich: -30 (sehr leise) bis -5 (extrem laut)
+ • Standardwert: -24 (Der Rundfunkstandard, eher leise)\   
+ • Empfehlung für YouTube/Web: -14 bis -16 (schön laut, aber klar)\    
+ • Bereich: -30 (sehr leise) bis -5 (extrem laut)
 
 ### Qualität und Bitrate
 Die Software ermöglicht:\
