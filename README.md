@@ -24,7 +24,8 @@ Für die Videokodierung stehen folgende Encoder zur Verfügung:\
     • Intel: Hardwarebeschleunigung über VAAPI\
     • CPU: Softwarebasierte Kodierung ohne Hardwarebeschleunigung
 
-Die Auswahl des Encoders erfolgt abhängig von der verfügbaren Hardware des Systems.
+Die Auswahl des Encoders erfolgt abhängig von der verfügbaren Hardware des Systems.   
+Alternativ kann die Konvertierung per Software durchgeführt werden
 
 ### Videoformate
 Das Quellvideo kann in eines der folgenden Zielformate konvertiert werden:\
@@ -85,22 +86,18 @@ In/Out-Point Definition: Benutzer können Start- und Endpunkte visuell festlegen
 
 Ressourceneffizienz: Das Modul nutzt Multithreading für die Bildextraktion, um ein Einfrieren der Benutzeroberfläche (GUI-Lag) während des schnellen Spulens zu verhindern.
 
-## 🔧 Installation
+## 🛠 Installation & Voraussetzungen
+Das Programm ist ein Frontend für FFmpeg. Damit alle Funktionen (inklusive Hardware-Beschleunigung) reibungslos laufen, müssen die folgenden Pakete auf deinem System installiert sein.
 
-### Build from DEB Package:
-Erstelle ein beliebiges Verzeichnis, öffne darin das Terminal und führe folgende Schritte aus: 
-```bash
-# Clone repository
-git clone https://github.com/Nightworker-DE/Linux-Video-Enkoder.git
-cd linux-video-enkoder
+### 1. System-Abhängigkeiten installieren
+Für Ubuntu / Debian / Linux Mint:
+```Bash
+sudo apt update
+sudo apt install python3-gi python3-gi-cairo gir1.2-gtk-3.0 ffmpeg
 ```
-```bash
-# Create DEB package
-dpkg-buildpackage -us -uc
-```
-```bash
-# Install (as root)
-sudo dpkg -i ../linux-video-enkoder_1.0.9_all.deb
-sudo apt-get install -f  # Resolve dependencies if needed
-```
-Die erstellte .deb Datei kann aber auch durch ein Doppelklick installiert werden
+### 2. Hardware-Beschleunigung (Optional)
+Um die GPU-Unterstützung zu nutzen, stelle sicher, dass die entsprechenden Treiber installiert sind:
+
+NVIDIA: nvidia-utils und libva-nvidia-driver (oder die proprietären Treiber).\
+AMD/Intel: libva-mesa-driver oder intel-media-driver.
+
