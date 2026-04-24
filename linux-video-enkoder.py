@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # =======================================================================
 # Titel:    Linux-Video-Enkoder (GTK3 Port)
-# Version:  1.1.4 (Final UI & Full Logic)
+# Version:  1.1.0 (Final UI & Full Logic)
 # Autor:    Nightworker / Adaptive UI: Gemini
 # =======================================================================
 import sys
