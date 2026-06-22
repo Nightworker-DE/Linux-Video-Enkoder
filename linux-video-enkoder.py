@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # =======================================================================
-# Titel:    GuideOS-Videokonverter (GTK3 Port)
+# Titel:    Linux Video Encoder (GTK3 Port)
 # Version:  1.1.1 (Fixed Aspect Ratio, Fixes for DaVinci Resolve MP4+PCM)
 # Autor:    Nightworker / Adaptive UI: Gemini
 # =======================================================================
@@ -125,7 +125,7 @@ def _codec_quality_args(codec, qmode, qval, preset, infile):
 
 class VideoConverterWindow(Gtk.Window):
     def __init__(self):
-        super().__init__(title="GuideOS Videokonverter")
+        super().__init__(title="Linux Video Encoder")
         self.set_default_size(1050, 750)
         self.selected_files = []
         self.current_proc = None
