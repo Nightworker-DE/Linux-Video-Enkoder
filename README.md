@@ -1,6 +1,6 @@
 ## Linux-Video-Enkoder
 
-<img width="1052" height="851" alt="Bildschirmfoto vom 2026-03-22 19-56-06" src="https://github.com/user-attachments/assets/8727496c-9a57-4ee9-b7e3-7ebd25280965" />
+<img width="1050" height="986" alt="Bildschirmfoto vom 2026-07-13 12-34-07" src="https://github.com/user-attachments/assets/288acc36-fd98-4531-bfb2-f6b38a6442e5" />
 
 ### Für eine einwandfreie Funktion muss ein aktueller Treiber und python3 installiert sein.
 
