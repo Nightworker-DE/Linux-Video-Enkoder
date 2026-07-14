@@ -101,7 +101,7 @@ Um die GPU-Unterstützung zu nutzen, stelle sicher, dass die entsprechenden Trei
 NVIDIA: nvidia-utils und libva-nvidia-driver (oder die proprietären Treiber).\
 AMD/Intel: libva-mesa-driver oder intel-media-driver.
 
-Du kannst den `Linux Video Enkoder` nach dem Download des `.deb` Packages von der **[Releases](https://github.com/Nightworker-DE/Linux-Video-Enkoder/releases)** Section in diesem Repository installieren.
+Installieren kannst du den **Linux Video Enkoder**, nach dem Download des `.deb` Packages, von der **[Releases](https://github.com/Nightworker-DE/Linux-Video-Enkoder/releases)** Section in diesem Repository.
 
 
 
