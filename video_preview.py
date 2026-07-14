@@ -10,10 +10,9 @@ class VideoPreviewDialog(Gtk.Dialog):
     def __init__(self, parent, video_path):
         super().__init__(title="Schnittbereich wählen", transient_for=parent, modal=True)
 
-        # Wichtig für die Größenänderung
         self.set_resizable(True)
 
-        # Buttons hinzufügen (diese landen in der action_area)
+        # Buttons hinzufügen
         self.add_button("_Abbrechen", Gtk.ResponseType.CANCEL)
         self.add_button("_Übernehmen", Gtk.ResponseType.OK)
 
@@ -23,8 +22,11 @@ class VideoPreviewDialog(Gtk.Dialog):
         self.end_time = self.duration
         self.is_updating = False
 
-        # Start-Auflösung
-        self.current_resolution = "1280x720"
+        # 1. Das exakte Seitenverhältnis (Aspect Ratio) des Videos ermitteln
+        self.video_aspect_ratio = self.get_video_aspect_ratio()
+
+        # Wir steuern die Qualität über die Ziel-Höhe.
+        self.current_target_height = 720
 
         vbox = self.get_content_area()
         vbox.set_spacing(10)
@@ -33,26 +35,28 @@ class VideoPreviewDialog(Gtk.Dialog):
         # Auswahl-Leiste
         button_hbox = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=15)
         vbox.pack_start(button_hbox, False, False, 5)
-        button_hbox.add(Gtk.Label(label="Vorschauqualität:"))
+        button_hbox.add(Gtk.Label(label="Vorschauqualität (Höhe):"))
 
-        self.radio_small = Gtk.RadioButton.new_with_label(None, "Klein (480p)")
-        self.radio_small.connect("toggled", self.on_res_toggled, "640x360")
+        # Die Radio-Buttons schalten die Zielhöhe um
+        self.radio_small = Gtk.RadioButton.new_with_label(None, "Klein (360p)")
+        self.radio_small.connect("toggled", self.on_res_toggled, 360)
         button_hbox.pack_start(self.radio_small, False, False, 0)
 
         self.radio_med = Gtk.RadioButton.new_with_label_from_widget(self.radio_small, "Mittel (720p)")
         self.radio_med.set_active(True)
-        self.radio_med.connect("toggled", self.on_res_toggled, "1280x720")
+        self.radio_med.connect("toggled", self.on_res_toggled, 720)
         button_hbox.pack_start(self.radio_med, False, False, 0)
 
         self.radio_large = Gtk.RadioButton.new_with_label_from_widget(self.radio_small, "Groß (1080p)")
-        self.radio_large.connect("toggled", self.on_res_toggled, "1920x1080")
+        self.radio_large.connect("toggled", self.on_res_toggled, 1080)
         button_hbox.pack_start(self.radio_large, False, False, 0)
 
         # ScrolledWindow für das Bild
         self.scroll = Gtk.ScrolledWindow()
         self.scroll.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
-        # Initiale Größe des Bildbereichs
-        self.scroll.set_size_request(1280, 720)
+
+        # 2. Fenstergröße dynamisch basierend auf dem Seitenverhältnis berechnen
+        self.update_window_dimensions()
 
         self.image = Gtk.Image()
         self.scroll.add(self.image)
@@ -86,21 +90,61 @@ class VideoPreviewDialog(Gtk.Dialog):
         vbox.pack_start(self.status_label, False, False, 0)
 
         self.show_all()
-        self.update_preview(0)
+        self.trigger_preview_update()
 
-    def on_res_toggled(self, button, res_string):
+    def get_video_aspect_ratio(self):
+        """Ermittelt die echten Pixel-Dimensionen und errechnet das Seitenverhältnis (W/H)."""
+        cmd = [
+            "ffprobe", "-v", "error",
+            "-select_streams", "v:0",
+            "-show_entries", "stream=width,height",
+            "-of", "csv=p=0:s=x",
+            self.video_path
+        ]
+        try:
+            output = subprocess.check_output(cmd).decode().strip()
+            dimensions = output.split('\n')[0]
+            width, height = map(int, dimensions.split('x'))
+            return width / height
+        except Exception as e:
+            print(f"Fehler bei der Seitenverhältnis-Ermittlung: {e}")
+            return 16.0 / 9.0  # Fallback auf Standard-Querformat
+
+    def update_window_dimensions(self):
+        """Berechnet die optimalen Maße für das Widget und weist das GTK-Fenster an, sich anzupassen."""
+        # Gewünschte Breite basierend auf Seitenverhältnis berechnen
+        calculated_width = int(self.current_target_height * self.video_aspect_ratio)
+        calculated_height = self.current_target_height
+
+        # Begrenzung für sehr große Höhen auf Desktop-Monitoren (z.B. bei 1080p Hochkant)
+        # Wenn die Höhe 800px überschreitet, skalieren wir das Widget auf maximal 800px Höhe runter,
+        # behalten aber die korrekte Breite bei.
+        max_widget_height = 800
+        if calculated_height > max_widget_height:
+            scale_factor = max_widget_height / calculated_height
+            widget_width = int(calculated_width * scale_factor)
+            widget_height = max_widget_height
+        else:
+            widget_width = calculated_width
+            widget_height = calculated_height
+
+        # Setze die Mindestgröße für den Bild-Container
+        self.scroll.set_size_request(widget_width, widget_height)
+
+    def on_res_toggled(self, button, target_height):
         if button.get_active():
-            self.current_resolution = res_string
+            self.current_target_height = target_height
+            self.update_window_dimensions()
 
-            # Neue Maße setzen
-            w, h = map(int, res_string.split('x'))
-            self.scroll.set_size_request(w, h)
-
-            # Das Fenster anweisen, sich neu zu berechnen
-            self.show_all() # Stellt sicher, dass alle Bereiche (auch Action-Area) bekannt sind
+            # Das Fenster zwingen, das Layout sofort neu zu berechnen und sich zusammenzuziehen/zu strecken
+            self.show_all()
             self.resize(1, 1)
 
-            val = self.slider.get_value()
+            self.trigger_preview_update()
+
+    def trigger_preview_update(self):
+        val = self.slider.get_value()
+        if not self.is_updating:
             threading.Thread(target=self.update_preview, args=(val,), daemon=True).start()
 
     def get_duration(self):
@@ -114,13 +158,19 @@ class VideoPreviewDialog(Gtk.Dialog):
     def on_slider_moved(self, widget):
         val = widget.get_value()
         self.time_label.set_markup(f"<b>Position: {self.format_time(val)}</b>")
-        if not self.is_updating:
-            threading.Thread(target=self.update_preview, args=(val,), daemon=True).start()
+        self.trigger_preview_update()
 
     def update_preview(self, seconds):
         self.is_updating = True
-        cmd = ["ffmpeg", "-ss", str(seconds), "-i", self.video_path, "-frames:v", "1",
-               "-s", self.current_resolution, "-f", "image2pipe", "-vcodec", "mjpeg", "-"]
+
+        # FFmpeg skaliert das Bild auf die Zielhöhe, Breite wird automatisch angepasst
+        video_filter = f"scale=-1:{self.current_target_height}"
+
+        cmd = [
+            "ffmpeg", "-ss", str(seconds), "-i", self.video_path, "-frames:v", "1",
+            "-vf", video_filter, "-f", "image2pipe", "-vcodec", "mjpeg", "-"
+        ]
+
         try:
             proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
             output, _ = proc.communicate()

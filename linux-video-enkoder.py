@@ -227,11 +227,21 @@ class VideoConverterWindow(Gtk.Window):
         grid.attach(self.quality_combo, 1, 7, 1, 1)
 
         self.quality_label = Gtk.Label(label="CRF Wert (0-51):", xalign=0)
+        self.quality_label.set_tooltip_text(
+            "Der CRF Wert bestimmt die Qualität.\n"
+            "Ein kleinerer Wert bedeutet höhere Qualität, aber\n"
+            "auch eine größere Ausgabedatei."
+        )
         grid.attach(self.quality_label, 0, 8, 1, 1)
         self.quality_entry = Gtk.Entry(text="23")
         grid.attach(self.quality_entry, 1, 8, 1, 1)
 
         norm_label = Gtk.Label(label="Analyse-Stufe:", xalign=0)
+        norm_label.set_tooltip_text(
+        "Wählt das Codierungs-Preset (Encoder-Aufwand).\n"
+        "Höhere Stufen (slow/slower) analysieren das Video gründlicher,\n"
+        "das optimiert das Video-File, erhöht jedoch die Renderzeit"
+        )
         grid.attach(norm_label, 0, 9, 1, 1)
         self.preset_combo = self._create_wayland_ready_combo(["ultrafast", "superfast", "veryfast", "faster", "fast", "medium", "slow", "slower", "veryslow"], active_idx=5)
         grid.attach(self.preset_combo, 1, 9, 1, 1)
