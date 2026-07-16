@@ -1,6 +1,9 @@
 ## Linux-Video-Enkoder
 
-<img width="1050" height="986" alt="Bildschirmfoto vom 2026-07-13 12-34-07" src="https://github.com/user-attachments/assets/288acc36-fd98-4531-bfb2-f6b38a6442e5" />
+<div style="display:flex; gap:10px;">
+  <img src="screenshots/enkoder-preview.webp" width="270" height="183">
+  <img src="screenshots/enkoder-manual.webp" width="270" height="183">
+</div>
 
 ### Für eine einwandfreie Funktion muss ein aktueller Treiber und python3 installiert sein.
 
