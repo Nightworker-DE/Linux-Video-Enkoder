@@ -1,8 +1,8 @@
 ## Linux-Video-Enkoder
 
 <div style="display:flex; gap:10px;">
-  <img src="screenshots/enkoder-preview.webp" width="270" height="183">
-  <img src="screenshots/enkoder-manual.webp" width="270" height="183">
+  <img src="screenshot/enkoder-preview.webp" width="270" height="183">
+  <img src="screenshot/enkoder-manual.webp" width="270" height="183">
 </div>
 
 ### Für eine einwandfreie Funktion muss ein aktueller Treiber und python3 installiert sein.
