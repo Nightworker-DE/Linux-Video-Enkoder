@@ -7,7 +7,6 @@ Standards-Version: 4.5.0
 Homepage: https://github.com/Nightworker-DE/Linux-Video-Enkoder
 
 Package: linux-video-enkoder
-Version: 1.1.4
 Architecture: all
 Depends: python3, ${misc:Depends}
 Description: Konvertierung mit ffmpeg und Hardwareunterstützung
