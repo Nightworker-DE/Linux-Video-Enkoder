@@ -1,3 +1,7 @@
+linux-video-enkoder (1.1.5) unstable; urgency=low
+  * Containerformat Webm hinzugefügt.
+ -- Nightworker <nightworker@guideos.de>  Wed, 21 Jul 2026 10:00:00 +0100
+
 linux-video-enkoder (1.1.4) unstable; urgency=low
   * Erweiterung Hochkantvideos.
  -- Nightworker <nightworker@guideos.de>  Tue, 14 Jul 2026 10:00:00 +0100
