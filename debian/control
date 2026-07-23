@@ -2,8 +2,8 @@ Source: linux-video-enkoder
 Section: video
 Priority: optional
 Maintainer: Nightworker <nightworker@guideos.de>
-Build-Depends: debhelper-compat (= 10)
-Standards-Version: 4.5.0
+Build-Depends: debhelper-compat (= 13)
+Standards-Version: 4.7.0
 Homepage: https://github.com/Nightworker-DE/Linux-Video-Enkoder
 
 Package: linux-video-enkoder

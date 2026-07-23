@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # =======================================================================
 # Titel:    Linux Video Enkoder (GTK3 Port)
-# Version:  1.5.0 (Fixed Autorotate / Native Metadata Rotation Pass)
+# Version:  1.1.5 (Auto-Opus for WebM + VP9/AV1 HW-Error Hinting)
 # Autor:    Nightworker / Adaptive UI: Gemini
 # =======================================================================
 import sys
@@ -84,6 +84,7 @@ def is_encoder_available(encoder: str) -> bool:
 _ENCODER_MAP = {
     "H.264": {"NVIDIA": ["h264_nvenc"], "AMD": ["h264_vaapi"], "INTEL": ["h264_vaapi"], "CPU": ["libx264"]},
     "H.265": {"NVIDIA": ["hevc_nvenc"], "AMD": ["hevc_vaapi"], "INTEL": ["hevc_vaapi"], "CPU": ["libx265"]},
+    "VP9":   {"NVIDIA": [], "AMD": ["vp9_vaapi"], "INTEL": ["vp9_vaapi"], "CPU": ["libvpx-vp9"]},
     "AV1":   {"NVIDIA": ["av1_nvenc"], "AMD": ["av1_vaapi"], "INTEL": ["av1_vaapi"], "CPU": ["libsvtav1"]},
 }
 
@@ -91,7 +92,7 @@ def _select_encoder(fmt, mode):
     candidates = _ENCODER_MAP.get(fmt, {}).get(mode, [])
     for enc in candidates:
         if is_encoder_available(enc): return enc
-    return {"H.264":"libx264", "H.265":"libx265", "AV1":"libsvtav1"}.get(fmt, "libx264")
+    return {"H.264":"libx264", "H.265":"libx265", "VP9":"libvpx-vp9", "AV1":"libsvtav1"}.get(fmt, "libx264")
 
 def _codec_quality_args(codec, qmode, qval, preset, infile):
     args = ["-c:v", codec]
@@ -113,12 +114,15 @@ def _codec_quality_args(codec, qmode, qval, preset, infile):
         qn = qval if qval.isdigit() else "23"
         if "nvenc" in codec: args += ["-rc", "vbr", "-cq", qn, "-preset", p]
         elif "vaapi" in codec: args += ["-rc_mode", "CQP", "-qp", qn]
+        elif "libvpx-vp9" in codec: args += ["-crf", qn, "-b:v", "0"]
         else: args += ["-crf", qn, "-preset", p]
     elif "Bitrate" in qmode:
-        args += ["-b:v", f"{qval}k", "-preset", p]
+        args += ["-b:v", f"{qval}k"]
+        if "libvpx-vp9" not in codec: args += ["-preset", p]
     else:
         vkbps = calculate_bitrate_for_target_size(infile, float(qval or 700)) or 5000
-        args += ["-b:v", f"{vkbps}k", "-preset", p]
+        args += ["-b:v", f"{vkbps}k"]
+        if "libvpx-vp9" not in codec: args += ["-preset", p]
     return args
 
 # -------------------- Hauptklasse --------------------
@@ -190,7 +194,9 @@ class VideoConverterWindow(Gtk.Window):
         left_vbox.pack_start(grid, False, False, 0)
 
         grid.attach(Gtk.Label(label="Container-Format:", xalign=0), 0, 0, 1, 1)
-        self.format_combo = self._create_wayland_ready_combo(["MP4 (.mp4)", "Matroska (.mkv)"])
+        self.format_combo = self._create_wayland_ready_combo(["MP4 (.mp4)", "Matroska (.mkv)", "WebM (.webm)"])
+        # Event für Auto-Umschaltung bei WebM verknüpfen:
+        self.format_combo.connect("changed", self.on_format_changed)
         grid.attach(self.format_combo, 1, 0, 1, 1)
 
         grid.attach(Gtk.Label(label="Dimension:", xalign=0), 0, 1, 1, 1)
@@ -198,7 +204,8 @@ class VideoConverterWindow(Gtk.Window):
         grid.attach(self.dimension_combo, 1, 1, 1, 1)
 
         grid.attach(Gtk.Label(label="Audioformat:", xalign=0), 0, 2, 1, 1)
-        self.audio_combo = self._create_wayland_ready_combo(["AAC","PCM","FLAC (mkv)"])
+        # Standardmäßig AAC (Index 1) ausgewählt
+        self.audio_combo = self._create_wayland_ready_combo(["Opus (WebM/MKV)", "AAC", "PCM", "FLAC (mkv)"], active_idx=1)
         grid.attach(self.audio_combo, 1, 2, 1, 1)
 
         norm_label = Gtk.Label(label="Normalisierung (LUFS):", xalign=0)
@@ -214,7 +221,7 @@ class VideoConverterWindow(Gtk.Window):
         grid.attach(self.audio_copy_chk, 1, 4, 1, 1)
 
         grid.attach(Gtk.Label(label="Video-Codec:", xalign=0), 0, 5, 1, 1)
-        self.video_combo = self._create_wayland_ready_combo(["H.264","H.265","AV1","Nur Audio ändern"])
+        self.video_combo = self._create_wayland_ready_combo(["H.264", "H.265", "VP9", "AV1", "Nur Audio ändern"])
         grid.attach(self.video_combo, 1, 5, 1, 1)
 
         grid.attach(Gtk.Label(label="Farbtiefe:", xalign=0), 0, 6, 1, 1)
@@ -253,11 +260,10 @@ class VideoConverterWindow(Gtk.Window):
         self.save_in_source_chk = Gtk.CheckButton(label="Im Quellverzeichnis speichern")
         left_vbox.pack_start(self.save_in_source_chk, False, False, 0)
 
-        # --- DER ENTSCHEIDENDE NEUE SCHALTER FÜR HOCHFORMAT-CLIPS ---
         self.keep_rotation_chk = Gtk.CheckButton(label="Metadaten-Rotation (9:16) beibehalten")
         self.keep_rotation_chk.set_active(True)
         self.keep_rotation_chk.set_tooltip_text("Verhindert, dass FFmpeg das Video fälschlicherweise in ein 16:9 Querformat zwingt.\n"
-                                                "Perfekt für Clips von Smartphones, die ein 90°-Flag besitzen.")
+                                                 "Perfekt für Clips von Smartphones, die ein 90°-Flag besitzen.")
         left_vbox.pack_start(self.keep_rotation_chk, False, False, 0)
 
         action_grid = Gtk.Grid(column_spacing=6, row_spacing=6)
@@ -326,6 +332,16 @@ class VideoConverterWindow(Gtk.Window):
         combo.set_active(active_idx)
         return combo
 
+    def on_format_changed(self, combo):
+        """Automatische Anpassung der Audio-Option bei Wahl von WebM"""
+        fmt = combo.get_active_text()
+        if fmt and "WebM" in fmt:
+            self.audio_combo.set_active(0)  # Wechselt auf Opus (Index 0)
+        elif fmt and ("MP4" in fmt or "Matroska" in fmt):
+            # Wechselt zurück auf AAC (Index 1) falls Opus nicht zwingend beibehalten werden soll
+            if self.audio_combo.get_active() == 0:
+                self.audio_combo.set_active(1)
+
     def on_audio_copy_toggled(self, btn):
         active = btn.get_active()
         self.audio_combo.set_sensitive(not active)
@@ -350,7 +366,7 @@ class VideoConverterWindow(Gtk.Window):
         self.gpu_combo.set_active(0)
         self.format_combo.set_active(0)
         self.dimension_combo.set_active(0)
-        self.audio_combo.set_active(0)
+        self.audio_combo.set_active(1)  # Stellt AAC bei Reset wieder ein
         self.video_combo.set_active(0)
         self.bit_combo.set_active(0)
         self.quality_combo.set_active(0)
@@ -404,6 +420,8 @@ class VideoConverterWindow(Gtk.Window):
     def build_ffmpeg_args(self, infile, outfile):
         sel_text = self.gpu_combo.get_active_text()
         keep_rotation = self.keep_rotation_chk.get_active()
+        container_choice = self.format_combo.get_active_text()
+        is_webm = "WebM" in container_choice
 
         if "NVIDIA" in sel_text: hw_mode = "NVIDIA"
         elif "AMD" in sel_text: hw_mode = "AMD"
@@ -419,10 +437,14 @@ class VideoConverterWindow(Gtk.Window):
         target_lufs = int(self.volume_spin.get_value())
         is_10bit = "10-Bit" in self.bit_combo.get_active_text()
 
+        # WebM erzwingt strikte Codecs (kein H.264 / H.265 erlaubt)
+        if is_webm:
+            if vchoice not in ["VP9", "AV1"]:
+                vchoice = "VP9"
+            audio_copy = False  # AAC/PCM-Streams können nicht gekoppelt kopiert werden
+
         args = []
 
-        # Wichtig: Wenn die native Rotation beibehalten werden soll, weisen wir FFmpeg an,
-        # das Video NICHT automatisch beim Importieren zu drehen.
         if keep_rotation:
             args += ["-noautorotate"]
 
@@ -439,7 +461,11 @@ class VideoConverterWindow(Gtk.Window):
         if vchoice == "Nur Audio ändern":
             args += ["-c:v", "copy"]
         else:
-            fmt = "H.264" if "H.264" in vchoice else ("H.265" if "H.265" in vchoice else "AV1")
+            if "H.264" in vchoice: fmt = "H.264"
+            elif "H.265" in vchoice: fmt = "H.265"
+            elif "VP9" in vchoice: fmt = "VP9"
+            else: fmt = "AV1"
+
             codec = _select_encoder(fmt, hw_mode)
             args += _codec_quality_args(codec, qmode, qval, preset, infile)
 
@@ -464,19 +490,28 @@ class VideoConverterWindow(Gtk.Window):
             elif target_w:
                 args += ["-vf", f"scale={target_w}:-2:flags=lanczos"]
 
-        # Wenn die native Rotation aktiv ist, schreiben wir das 90 Grad Flag
-        # unberührt zurück in den Video-Stream-Metadaten-Header der Ausgabedatei.
         if keep_rotation:
             args += ["-metadata:s:v:0", "rotate=90"]
 
         if audio_copy:
             args += ["-c:a", "copy"]
         else:
-            a_codec = {"AAC":"aac","PCM":"pcm_s16le","FLAC (mkv)":"flac"}.get(achoice, "aac")
+            # Codec-Mapping inkl. Opus für WebM
+            a_codec_map = {
+                "Opus (WebM/MKV)": "libopus",
+                "AAC": "aac",
+                "PCM": "pcm_s16le",
+                "FLAC (mkv)": "flac"
+            }
+            if is_webm:
+                a_codec = "libopus"
+            else:
+                a_codec = a_codec_map.get(achoice, "aac")
+
             args += ["-c:a", a_codec]
 
             audio_filters = []
-            if achoice == "PCM" or vchoice == "AV1":
+            if achoice == "PCM" or vchoice in ["AV1", "VP9"] or is_webm:
                 args += ["-ar", "48000"]
                 audio_filters.append("aresample=48000")
 
@@ -512,7 +547,9 @@ class VideoConverterWindow(Gtk.Window):
             in_p = Path(infile)
             GLib.idle_add(self.file_label.set_text, f"Fortschritt: {in_p.name}")
 
-            if audio_format and "FLAC" in audio_format:
+            if container_choice and "WebM" in container_choice:
+                ext = ".webm"
+            elif audio_format and "FLAC" in audio_format:
                 ext = ".mkv"
             elif container_choice and "MP4" in container_choice:
                 ext = ".mp4"
@@ -536,8 +573,28 @@ class VideoConverterWindow(Gtk.Window):
                         pct = min(1.0, (int(m.group(1))*3600 + int(m.group(2))*60 + float(m.group(3))) / dur)
                         GLib.idle_add(self.file_progress.set_fraction, pct)
                         GLib.idle_add(self.total_progress.set_fraction, (idx-1+pct)/total)
-                self.current_proc.wait()
-            except Exception as e: self.append_log(f"FEHLER: {e}\n")
+
+                return_code = self.current_proc.wait()
+
+                # Spezifische Fehleranalyse für VP9 / AV1 & Hardware-Encoding
+                if return_code != 0 and not self.stop_event.is_set():
+                    vchoice = self.video_combo.get_active_text()
+                    gpu_choice = self.gpu_combo.get_active_text()
+
+                    if ("VP9" in vchoice or "AV1" in vchoice) and "Software" not in gpu_choice:
+                        codec_name = "VP9" if "VP9" in vchoice else "AV1"
+                        self.append_log(
+                            "\n" + "="*60 + "\n"
+                            f"⚠️ HINWEIS / ENCODER-FEHLER ({codec_name}):\n"
+                            f"Das Encodieren ist fehlgeschlagen. {codec_name} unterstützt auf deiner GPU\n"
+                            "(z. B. NVIDIA RTX 30er-Serie) KEIN Hardware-Encoding via NVENC.\n\n"
+                            "💡 LÖSUNG: Bitte stelle die 'GPU / CPU Auswahl' oben links auf\n"
+                            "'Software (CPU)' um und starte die Konvertierung erneut.\n"
+                            + "="*60 + "\n\n"
+                        )
+
+            except Exception as e:
+                self.append_log(f"FEHLER: {e}\n")
 
         self.append_log("\nFERTIG.\n")
         GLib.idle_add(self.file_label.set_text, "Konvertierung abgeschlossen")
