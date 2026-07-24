@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # =======================================================================
 # Titel:    Linux Video Enkoder (GTK3 Port)
-# Version:  1.7.0 (Dynamic WebM Codec Filtering + AV1/VP9 HW-Error Hint)
+# Version:  1.8.1 (Dynamic WebM Codecs + Vendor-Specific HW Warnings)
 # Autor:    Nightworker / Adaptive UI: Gemini
 # =======================================================================
 import sys
@@ -130,7 +130,7 @@ def _codec_quality_args(codec, qmode, qval, preset, infile):
 class VideoConverterWindow(Gtk.Window):
     def __init__(self):
         super().__init__(title="Linux Video Enkoder")
-        self.set_default_size(1050, 750)
+        self.set_default_size(1050, 780)
         self.selected_files = []
         self.current_proc = None
         self.stop_event = threading.Event()
@@ -159,6 +159,7 @@ class VideoConverterWindow(Gtk.Window):
 
         left_vbox.pack_start(Gtk.Label(label="GPU / CPU Auswahl:", xalign=0), False, False, 0)
         self.gpu_combo = self._create_wayland_ready_combo(["Automatisch (empfohlen)", "NVIDIA", "AMD", "Intel", "Software (CPU)"])
+        self.gpu_combo.connect("changed", self._check_codec_hardware_support)
         left_vbox.pack_start(self.gpu_combo, False, False, 0)
 
         self.btn_files = Gtk.Button(label="Dateien auswählen")
@@ -220,6 +221,12 @@ class VideoConverterWindow(Gtk.Window):
 
         grid.attach(Gtk.Label(label="Video-Codec:", xalign=0), 0, 5, 1, 1)
         self.video_combo = self._create_wayland_ready_combo(["H.264", "H.265", "VP9", "AV1", "Nur Audio ändern"])
+        self.video_combo.set_tooltip_text(
+            "• H.264 / H.265: Fast überall per Hardware beschleunigt\n"
+            "• VP9: HW-Beschleunigung primär auf Intel QuickSync / AMD\n"
+            "• AV1: HW-Beschleunigung nur auf neueren GPUs (RTX 40xx, RX 7000, Intel Arc)"
+        )
+        self.video_combo.connect("changed", self._check_codec_hardware_support)
         grid.attach(self.video_combo, 1, 5, 1, 1)
 
         grid.attach(Gtk.Label(label="Farbtiefe:", xalign=0), 0, 6, 1, 1)
@@ -243,13 +250,19 @@ class VideoConverterWindow(Gtk.Window):
 
         norm_label = Gtk.Label(label="Analyse-Stufe:", xalign=0)
         norm_label.set_tooltip_text(
-        "Wählt das Codierungs-Preset (Encoder-Aufwand).\n"
-        "Höhere Stufen (slow/slower) analysieren das Video gründlicher,\n"
-        "das optimiert das Video-File, erhöht jedoch die Renderzeit"
+            "Wählt das Codierungs-Preset (Encoder-Aufwand).\n"
+            "Höhere Stufen (slow/slower) analysieren das Video gründlicher,\n"
+            "das optimiert das Video-File, erhöht jedoch die Renderzeit"
         )
         grid.attach(norm_label, 0, 9, 1, 1)
         self.preset_combo = self._create_wayland_ready_combo(["ultrafast", "superfast", "veryfast", "faster", "fast", "medium", "slow", "slower", "veryslow"], active_idx=5)
         grid.attach(self.preset_combo, 1, 9, 1, 1)
+
+        # Dynamic Warn-Label für HW Support
+        self.hw_warning_label = Gtk.Label(xalign=0)
+        self.hw_warning_label.set_line_wrap(True)
+        self.hw_warning_label.set_markup("")
+        left_vbox.pack_start(self.hw_warning_label, False, False, 0)
 
         left_vbox.pack_start(Gtk.Label(label="Zielordner (leer -> auto):", xalign=0), False, False, 0)
         self.target_entry = Gtk.Entry()
@@ -330,6 +343,46 @@ class VideoConverterWindow(Gtk.Window):
         combo.set_active(active_idx)
         return combo
 
+    def _check_codec_hardware_support(self, *args):
+        """Prüft live, ob die gewählte Codec/GPU-Kombination unterstützt wird."""
+        codec = self.video_combo.get_active_text() or ""
+        gpu_sel = self.gpu_combo.get_active_text() or ""
+
+        detected_gpu = detect_gpu_short()
+        gpu = detected_gpu if "Automatisch" in gpu_sel else gpu_sel.upper()
+
+        warning_text = ""
+
+        # VP9 auf NVIDIA (Kein HW-Encoder)
+        if "VP9" in codec and "NVIDIA" in gpu:
+            warning_text = (
+                "⚠️ <b>Hinweis (VP9):</b> NVIDIA bietet kein HW-Encoding für VP9.\n"
+                "Für Enkodierung bitte oben <b>Software (CPU)</b> wählen."
+            )
+        # AV1 auf NVIDIA
+        elif "AV1" in codec and "NVIDIA" in gpu:
+            warning_text = (
+                "💡 <b>Hinweis (AV1):</b> HW-Encoding benötigt eine <b>RTX 40xx+</b>.\n"
+                "Falls du eine ältere Karte nutzt, bitte auf <b>Software (CPU)</b> ausweichen."
+            )
+        # AV1 auf AMD
+        elif "AV1" in codec and "AMD" in gpu:
+            warning_text = (
+                "💡 <b>Hinweis (AV1):</b> HW-Encoding erfordert eine <b>Radeon RX 7000+</b>.\n"
+                "Falls du eine ältere Karte nutzt, bitte auf <b>Software (CPU)</b> ausweichen."
+            )
+        # AV1 auf Intel
+        elif "AV1" in codec and "INTEL" in gpu:
+            warning_text = (
+                "💡 <b>Hinweis (AV1):</b> HW-Encoding benötigt eine <b>Intel Arc / QuickSync AV1</b> GPU.\n"
+                "Falls nicht vorhanden, bitte auf <b>Software (CPU)</b> ausweichen."
+            )
+
+        if warning_text:
+            self.hw_warning_label.set_markup(f'<span foreground="#d35400"><small>{warning_text}</small></span>')
+        else:
+            self.hw_warning_label.set_markup("")
+
     def _update_video_codecs_for_container(self):
         """Filtert die Video-Codecs: Bei WebM sind nur VP9 und AV1 erlaubt."""
         container = self.format_combo.get_active_text() or ""
@@ -353,6 +406,8 @@ class VideoConverterWindow(Gtk.Window):
                 self.video_combo.set_active(all_codecs.index(current_codec))
             else:
                 self.video_combo.set_active(0)  # Standard auf H.264
+
+        self._check_codec_hardware_support()
 
     def on_format_changed(self, combo):
         """Automatische Anpassung von Audio- & Video-Codecs bei Container-Wechsel"""
@@ -401,6 +456,7 @@ class VideoConverterWindow(Gtk.Window):
         self.target_entry.set_text("")
         self.save_in_source_chk.set_active(False)
         self.keep_rotation_chk.set_active(True)
+        self._check_codec_hardware_support()
 
     def on_quality_mode_changed(self, combo):
         m = combo.get_active_text()
@@ -608,8 +664,8 @@ class VideoConverterWindow(Gtk.Window):
                         self.append_log(
                             "\n" + "="*60 + "\n"
                             f"⚠️ HINWEIS / ENCODER-FEHLER ({codec_name}):\n"
-                            f"Das Encodieren ist fehlgeschlagen. {codec_name} unterstützt auf deiner GPU\n"
-                            "(z. B. NVIDIA RTX 30er-Serie) KEIN Hardware-Encoding via NVENC.\n\n"
+                            f"Das Encodieren ist fehlgeschlagen. Der Codec {codec_name} wird auf deiner GPU\n"
+                            "eventuell nicht hardwareseitig zum Enkodieren unterstützt.\n\n"
                             "💡 LÖSUNG: Bitte stelle die 'GPU / CPU Auswahl' oben links auf\n"
                             "'Software (CPU)' um und starte die Konvertierung erneut.\n"
                             + "="*60 + "\n\n"
