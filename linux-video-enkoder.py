@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # =======================================================================
 # Titel:    Linux Video Enkoder (GTK3 Port)
-# Version:  1.8.1 (Dynamic WebM Codecs + Vendor-Specific HW Warnings)
+# Version:  1.1.8 (Hardened Security, Input Sanitizing & Native Process Handling)
 # Autor:    Nightworker / Adaptive UI: Gemini
 # =======================================================================
 import sys
@@ -24,27 +24,28 @@ try:
 except ImportError:
     VideoPreviewDialog = None
 
-# -------------------- Hilfsfunktionen --------------------
+# -------------------- Hilfsfunktionen & Sicherheit --------------------
 def which_bin(name):
     return shutil.which(name) is not None
 
 def detect_gpu_short():
+    """Sichere GPU-Erkennung ohne Shell-Interpreter (Schutz vor Shell-Injection)."""
     try:
-        out = subprocess.getoutput(r"lspci | grep -i 'vga\|3d' || true")
+        res = subprocess.run(["lspci"], capture_output=True, text=True, check=False)
+        s = res.stdout.lower()
+        if "nvidia" in s: return "NVIDIA"
+        if "amd" in s or "ati" in s: return "AMD"
+        if "intel" in s: return "INTEL"
     except Exception:
-        return "CPU"
-    s = out.lower()
-    if "nvidia" in s: return "NVIDIA"
-    if "amd" in s or "ati" in s: return "AMD"
-    if "intel" in s: return "INTEL"
+        pass
     return "CPU"
 
 def probe_duration_seconds(path: Path):
     if not which_bin("ffprobe"): return None
     try:
         out = subprocess.check_output([
-            "ffprobe","-v","error","-show_entries","format=duration",
-            "-of","default=noprint_wrappers=1:nokey=1", str(path)
+            "ffprobe", "-v", "error", "-show_entries", "format=duration",
+            "-of", "default=noprint_wrappers=1:nokey=1", str(path.resolve())
         ], stderr=subprocess.DEVNULL).decode().strip()
         return float(out) if out else None
     except Exception: return None
@@ -57,6 +58,7 @@ def calculate_bitrate_for_target_size(filepath, target_size_mb, audio_bitrate_kb
     return int(video_kbps)
 
 def make_unique_path(path: Path) -> Path:
+    path = path.resolve()
     if not path.exists(): return path
     parent, stem, suffix = path.parent, path.stem, path.suffix
     new_stem = f"{stem}_converted"
@@ -67,6 +69,20 @@ def make_unique_path(path: Path) -> Path:
         candidate = parent / f"{new_stem}({i}){suffix}"
         if not candidate.exists(): return candidate
         i += 1
+
+def sanitize_time_str(time_str: str, default: str = "00:00:00") -> str:
+    """Prüft, ob der Zeit-String das Format HH:MM:SS oder SS(.ms) einhält."""
+    time_str = time_str.strip()
+    if re.match(r"^(\d{2}:)?\d{2}:\d{2}(\.\d+)?$", time_str) or re.match(r"^\d+(\.\d+)?$", time_str):
+        return time_str
+    return default
+
+def sanitize_int(val_str: str, default: int = 0) -> int:
+    """Extrahiert sicher Ganzzahlen aus Benutzereingaben."""
+    try:
+        return abs(int(re.sub(r"[^\d]", "", val_str)))
+    except ValueError:
+        return default
 
 time_re = re.compile(r"time=(\d+):(\d+):(\d+(?:\.\d+)?)")
 _encoder_cache = {}
@@ -94,7 +110,7 @@ def _select_encoder(fmt, mode):
         if is_encoder_available(enc): return enc
     return {"H.264":"libx264", "H.265":"libx265", "VP9":"libvpx-vp9", "AV1":"libsvtav1"}.get(fmt, "libx264")
 
-def _codec_quality_args(codec, qmode, qval, preset, infile):
+def _codec_quality_args(codec, qmode, qval_raw, preset, infile):
     args = ["-c:v", codec]
 
     if "nvenc" in codec:
@@ -111,16 +127,18 @@ def _codec_quality_args(codec, qmode, qval, preset, infile):
         p = preset
 
     if "CQ" in qmode:
-        qn = qval if qval.isdigit() else "23"
+        qn = str(sanitize_int(qval_raw, default=23))
         if "nvenc" in codec: args += ["-rc", "vbr", "-cq", qn, "-preset", p]
         elif "vaapi" in codec: args += ["-rc_mode", "CQP", "-qp", qn]
         elif "libvpx-vp9" in codec: args += ["-crf", qn, "-b:v", "0"]
         else: args += ["-crf", qn, "-preset", p]
     elif "Bitrate" in qmode:
-        args += ["-b:v", f"{qval}k"]
+        kbps = str(sanitize_int(qval_raw, default=5000))
+        args += ["-b:v", f"{kbps}k"]
         if "libvpx-vp9" not in codec: args += ["-preset", p]
     else:
-        vkbps = calculate_bitrate_for_target_size(infile, float(qval or 700)) or 5000
+        target_mb = sanitize_int(qval_raw, default=700)
+        vkbps = calculate_bitrate_for_target_size(infile, target_mb) or 5000
         args += ["-b:v", f"{vkbps}k"]
         if "libvpx-vp9" not in codec: args += ["-preset", p]
     return args
@@ -489,12 +507,21 @@ class VideoConverterWindow(Gtk.Window):
         dialog.destroy()
 
     def on_open_preview(self, btn):
-        if not self.selected_files or not VideoPreviewDialog: return
+        if not self.selected_files or not VideoPreviewDialog:
+            return
+
         dialog = VideoPreviewDialog(self, self.selected_files[0])
         if dialog.run() == Gtk.ResponseType.OK:
             s, e = dialog.get_range()
-            self.start_entry.set_text(f"{int(s//3600):02d}:{int((s%3600)//60):02d}:{s%60:05.2f}")
-            self.duration_limit_entry.set_text(f"{e-s:.2f}")
+
+            # Startzeit als HH:MM:SS.xx formatieren
+            start_formatted = f"{int(s//3600):02d}:{int((s%3600)//60):02d}:{s%60:05.2f}"
+            self.start_entry.set_text(start_formatted)
+
+            # Dauer (Differenz aus Ende und Start) eintragen
+            duration_diff = max(0.0, e - s)
+            self.duration_limit_entry.set_text(f"{duration_diff:.2f}")
+
         dialog.destroy()
 
     def build_ffmpeg_args(self, infile, outfile):
@@ -510,7 +537,7 @@ class VideoConverterWindow(Gtk.Window):
         else: hw_mode = detect_gpu_short().upper()
 
         vchoice, achoice = self.video_combo.get_active_text(), self.audio_combo.get_active_text()
-        qmode, qval = self.quality_combo.get_active_text(), self.quality_entry.get_text()
+        qmode, qval_raw = self.quality_combo.get_active_text(), self.quality_entry.get_text()
         upscale = self.dimension_combo.get_active_text()
         preset = self.preset_combo.get_active_text()
         audio_copy = self.audio_copy_chk.get_active()
@@ -533,9 +560,22 @@ class VideoConverterWindow(Gtk.Window):
             elif "INTEL" in hw_mode or "AMD" in hw_mode:
                 args += ["-hwaccel", "vaapi", "-hwaccel_output_format", "vaapi", "-hwaccel_device", "/dev/dri/renderD128"]
 
-        if self.start_entry.get_text() != "00:00:00": args += ["-ss", self.start_entry.get_text()]
-        args += ["-i", infile]
-        if self.duration_limit_entry.get_text() not in ["0", ""]: args += ["-t", self.duration_limit_entry.get_text()]
+        start_time = sanitize_time_str(self.start_entry.get_text(), "00:00:00")
+        if start_time != "00:00:00":
+            args += ["-ss", start_time]
+
+        args += ["-i", str(Path(infile).resolve())]
+
+        # --- KORREKTUR FÜR DIE DAUER (Limit) ---
+        # Statt int parsen wir Float, um Dezimalstellen (wie "10.00") sicher zu verarbeiten.
+        raw_dur = self.duration_limit_entry.get_text().strip().replace(',', '.')
+        try:
+            dur_float = float(raw_dur)
+            if dur_float > 0:
+                args += ["-t", f"{dur_float:.2f}"]
+        except ValueError:
+            pass
+        # --------------------------------------
 
         if vchoice == "Nur Audio ändern":
             args += ["-c:v", "copy"]
@@ -546,7 +586,7 @@ class VideoConverterWindow(Gtk.Window):
             else: fmt = "AV1"
 
             codec = _select_encoder(fmt, hw_mode)
-            args += _codec_quality_args(codec, qmode, qval, preset, infile)
+            args += _codec_quality_args(codec, qmode, qval_raw, preset, infile)
 
             if is_10bit and "vaapi" not in codec and "nvenc" not in codec:
                  args += ["-pix_fmt", "yuv420p10le"]
@@ -622,7 +662,7 @@ class VideoConverterWindow(Gtk.Window):
 
         for idx, infile in enumerate(list(self.selected_files), 1):
             if self.stop_event.is_set(): break
-            in_p = Path(infile)
+            in_p = Path(infile).resolve()
             GLib.idle_add(self.file_label.set_text, f"Fortschritt: {in_p.name}")
 
             if container_choice and "WebM" in container_choice:
@@ -634,11 +674,20 @@ class VideoConverterWindow(Gtk.Window):
             else:
                 ext = ".mkv"
 
-            out_dir = in_p.parent if self.save_in_source_chk.get_active() else Path(self.target_entry.get_text() or in_p.parent / "converted")
+            target_val = self.target_entry.get_text().strip()
+            if self.save_in_source_chk.get_active():
+                out_dir = in_p.parent
+            elif target_val:
+                out_dir = Path(target_val).resolve()
+            else:
+                out_dir = in_p.parent / "converted"
+
             out_dir.mkdir(parents=True, exist_ok=True)
             out_p = make_unique_path(out_dir / (in_p.stem + ext))
 
-            dur = float(self.duration_limit_entry.get_text() or 0) or (probe_duration_seconds(in_p) or 1.0)
+            dur_str = sanitize_time_str(self.duration_limit_entry.get_text(), "0")
+            dur = float(dur_str) if dur_str != "0" else (probe_duration_seconds(in_p) or 1.0)
+
             cmd = ["ffmpeg"] + self.build_ffmpeg_args(str(in_p), str(out_p)) + ["-y", str(out_p)]
 
             self.append_log(f"\nSTART: {in_p.name}\n")
